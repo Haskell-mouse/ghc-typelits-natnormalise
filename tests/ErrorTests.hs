@@ -28,10 +28,17 @@ import Language.Haskell.TH.Syntax (runIO)
 testProxy1 :: Proxy (x + 1) -> Proxy (2 + x)
 testProxy1 = id
 
+#if __GLASGOW_HASKELL__ >= 811
+testProxy1Errors =
+  ["Expected: Proxy (x + 1) -> Proxy (2 + x)"
+  ,"Actual: Proxy (x + 1) -> Proxy (x + 1)"
+  ]
+#else 
 testProxy1Errors =
   ["Expected type: Proxy (x + 1) -> Proxy (2 + x)"
   ,"Actual type: Proxy (2 + x) -> Proxy (2 + x)"
   ]
+#endif
 
 type family GCD (x :: Nat) (y :: Nat) :: Nat
 type instance GCD 6 8 = 2
@@ -40,10 +47,17 @@ type instance GCD 9 6 = 3
 testProxy2 :: Proxy (GCD 6 8 + x) -> Proxy (x + GCD 9 6)
 testProxy2 = id
 
+#if __GLASGOW_HASKELL__ >= 811
+testProxy2Errors =
+  ["Expected: Proxy (GCD 6 8 + x) -> Proxy (x + GCD 9 6)"
+  ,"Actual: Proxy (2 + x) -> Proxy (2 + x)"
+  ]
+#else 
 testProxy2Errors =
   ["Expected type: Proxy (GCD 6 8 + x) -> Proxy (x + GCD 9 6)"
   ,"Actual type: Proxy (x + 3) -> Proxy (x + 3)"
   ]
+#endif
 
 proxyFun3 :: Proxy (x + x + x) -> ()
 proxyFun3 = const ()
@@ -51,10 +65,17 @@ proxyFun3 = const ()
 testProxy3 :: Proxy 8 -> ()
 testProxy3 = proxyFun3
 
+#if __GLASGOW_HASKELL__ >= 811
+testProxy3Errors =
+  ["Expected: Proxy 8 -> ()"
+  ,"Actual: Proxy ((x0 + x0) + x0) -> ()"
+  ]
+#else
 testProxy3Errors =
   ["Expected type: Proxy 8 -> ()"
   ,"Actual type: Proxy ((x0 + x0) + x0) -> ()"
   ]
+#endif
 
 proxyFun4 :: Proxy ((2*y)+4) -> ()
 proxyFun4 = const ()
@@ -62,18 +83,32 @@ proxyFun4 = const ()
 testProxy4 :: Proxy 2 -> ()
 testProxy4 = proxyFun4
 
+#if __GLASGOW_HASKELL__ >= 811
+testProxy4Errors =
+  ["Expected: Proxy 2 -> ()"
+  ,"Actual: Proxy ((2 * y0) + 4) -> ()"
+  ]
+#else
 testProxy4Errors =
   ["Expected type: Proxy 2 -> ()"
   ,"Actual type: Proxy ((2 * y0) + 4) -> ()"
   ]
+#endif
 
 testProxy5 :: Proxy 7 -> ()
 testProxy5 = proxyFun4
 
+#if __GLASGOW_HASKELL__ >= 811
+testProxy5Errors =
+  ["Expected: Proxy 7 -> ()"
+  ,"Actual: Proxy ((2 * y1) + 4) -> ()"
+  ]
+#else
 testProxy5Errors =
   ["Expected type: Proxy 7 -> ()"
   ,"Actual type: Proxy ((2 * y1) + 4) -> ()"
   ]
+#endif
 
 proxyFun6 :: Proxy (2^k) -> Proxy (2^k)
 proxyFun6 = const Proxy
@@ -81,10 +116,17 @@ proxyFun6 = const Proxy
 testProxy6 :: Proxy 7
 testProxy6 = proxyFun6 (Proxy :: Proxy 7)
 
+#if __GLASGOW_HASKELL__ >= 811
+testProxy6Errors =
+  ["Expected: Proxy (2 ^ k0)"
+  ,"Actual: Proxy 7"
+  ]
+#else
 testProxy6Errors =
   ["Expected type: Proxy (2 ^ k0)"
   ,"Actual type: Proxy 7"
   ]
+#endif
 
 proxyFun7 :: Proxy (2^k) -> Proxy k
 proxyFun7 = const Proxy
@@ -92,10 +134,17 @@ proxyFun7 = const Proxy
 testProxy8 :: Proxy x -> Proxy (y + x)
 testProxy8 = id
 
+#if __GLASGOW_HASKELL__ >= 811
+testProxy8Errors =
+  ["Expected: Proxy x -> Proxy (y + x)"
+  ,"Actual: Proxy x -> Proxy x"
+  ]
+#else
 testProxy8Errors =
   ["Expected type: Proxy x -> Proxy (y + x)"
   ,"Actual type: Proxy x -> Proxy x"
   ]
+#endif
 
 proxyInEq :: (a <= b) => Proxy a -> Proxy b -> ()
 proxyInEq _ _ = ()
@@ -169,10 +218,17 @@ type instance CLog 2 2 = 1
 testProxy15 :: (CLog 2 (2 ^ n) ~ n, (1 <=? n) ~ True) => Proxy n -> Proxy (n+d)
 testProxy15 = id
 
+#if __GLASGOW_HASKELL__ >= 811
+testProxy15Errors =
+  ["Expected: Proxy n -> Proxy (n + d)"
+  ,"Actual: Proxy n -> Proxy n"
+  ]
+#else
 testProxy15Errors =
   ["Expected type: Proxy n -> Proxy (n + d)"
   ,"Actual type: Proxy n -> Proxy n"
   ]
+#endif
 
 data Fin (n :: Nat) where
   FZ :: Fin (n + 1)

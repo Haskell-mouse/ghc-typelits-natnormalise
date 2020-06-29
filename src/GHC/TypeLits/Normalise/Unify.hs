@@ -60,22 +60,43 @@ import GHC.Integer            (smallInteger)
 import GHC.Integer.Logarithms (integerLogBase#)
 
 -- GHC API
+#if __GLASGOW_HASKELL__ < 811
 import Outputable    (Outputable (..), (<+>), ($$), text)
+
 import TcPluginM     (TcPluginM, tcPluginTrace)
 import TcTypeNats    (typeNatAddTyCon, typeNatExpTyCon, typeNatMulTyCon,
                       typeNatSubTyCon, typeNatLeqTyCon)
+
 import TyCon         (TyCon)
-import Type          (TyVar,
-                      coreView, eqType, mkNumLitTy, mkTyConApp, mkTyVarTy,
+import Type          (TyVar, coreView, eqType, mkNumLitTy, mkTyConApp, mkTyVarTy,
                       nonDetCmpType, PredType, typeKind)
 import TyCoRep       (Kind, Type (..), TyLit (..))
 import TysWiredIn    (boolTy, promotedTrueDataCon, typeNatKind)
 import UniqSet       (UniqSet, unionManyUniqSets, emptyUniqSet, unionUniqSets,
                       unitUniqSet)
+#else
+import GHC.Utils.Outputable (Outputable (..), (<+>), ($$), text)
+import GHC.Tc.Plugin     (TcPluginM, tcPluginTrace)
+import GHC.Builtin.Types.Literals (typeNatAddTyCon, typeNatExpTyCon, typeNatMulTyCon,
+                                   typeNatSubTyCon, typeNatLeqTyCon) 
+import GHC.Core.TyCon (TyCon)
+import GHC.Core.Type (TyVar, coreView, eqType, mkNumLitTy, mkTyConApp, mkTyVarTy,
+                      nonDetCmpType, PredType, typeKind)
+import GHC.Core.TyCo.Rep (Kind, Type (..), TyLit (..)) 
+import GHC.Builtin.Types (boolTy, promotedTrueDataCon, naturalTy)
+import GHC.Types.Unique.Set  (UniqSet, unionManyUniqSets, emptyUniqSet, unionUniqSets,
+                             unitUniqSet)
+#endif
+
 
 #if MIN_VERSION_ghc(8,10,0)
+#if __GLASGOW_HASKELL__ < 811
 import Constraint (Ct,  ctEvidence, ctEvId, ctEvPred, isGiven)
 import Predicate  (EqRel (NomEq), Pred (EqPred), classifyPredType, mkPrimEqPred)
+#else 
+import GHC.Tc.Types.Constraint (Ct,  ctEvidence, ctEvId, ctEvPred, isGiven)
+import GHC.Core.Predicate (EqRel (NomEq), Pred (EqPred), classifyPredType, mkPrimEqPred)
+#endif
 #else
 import TcRnMonad  (Ct, ctEvidence, isGiven)
 import TcRnTypes  (ctEvPred)
@@ -169,7 +190,11 @@ normaliseNatEverywhere ty0
 
 normaliseSimplifyNat :: Type -> Writer [(Type, Type)] Type
 normaliseSimplifyNat ty
+#if __GLASGOW_HASKELL__ < 811
   | typeKind ty `eqType` typeNatKind = do
+#else 
+  | typeKind ty `eqType` naturalTy = do
+#endif
       ty' <- normaliseNat ty
       return $ reifySOP $ simplifySOP ty'
   | otherwise = return ty

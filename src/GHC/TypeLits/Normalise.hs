@@ -175,6 +175,28 @@ import GHC.TcPluginM.Extra (flattenGivens)
 import Text.Read           (readMaybe)
 
 -- GHC API
+#if MIN_VERSION_ghc(8,11,0)
+import GHC.Core (Expr(..))
+import GHC.Utils.Outputable (Outputable (..), (<+>), ($$), text)
+import GHC.Driver.Plugins (Plugin (..), defaultPlugin, purePlugin)
+import GHC.Builtin.Names (eqTyConKey, hasKey, heqTyConKey, knownNatClassName)
+import GHC.Tc.Types.Evidence (EvTerm (..), evCast)
+import GHC.Tc.Plugin (TcPluginM, newCoercionHole, tcLookupClass, tcPluginTrace, tcPluginIO)
+import GHC.Core.Type (Kind, PredType, eqType, mkTyVarTy, tyConAppTyCon_maybe, typeKind)
+import GHC.Builtin.Types (naturalTy, promotedFalseDataCon, promotedTrueDataCon)
+import GHC.Core.Coercion (CoercionHole, Role (..), mkUnivCo)
+import GHC.Tc.Types (TcPlugin (..), TcPluginResult(..))
+import GHC.Core.TyCo.Rep (Type (..), UnivCoProvenance (..))
+import GHC.Tc.Utils.TcType (isEqPred, isEqPrimPred)
+import GHC.Builtin.Types.Literals (typeNatAddTyCon, typeNatExpTyCon, typeNatLeqTyCon, 
+                                   typeNatMulTyCon, typeNatSubTyCon)
+import GHC.Tc.Types.Constraint   
+  (Ct, CtEvidence (..), CtLoc, ShadowInfo (WDeriv), TcEvDest (..), ctEvidence, ctEvLoc, ctEvPred, ctEvExpr,
+   ctLoc, ctLocSpan, isGiven, isWanted, mkNonCanonical, setCtLoc, setCtLocSpan, isWantedCt)
+import GHC.Core.Predicate   (EqRel (NomEq), Pred (EqPred), classifyPredType, 
+                             getEqPredTys, mkClassPred, mkPrimEqPred)
+
+#else
 #if MIN_VERSION_ghc(8,5,0)
 import CoreSyn    (Expr (..))
 #endif
@@ -207,7 +229,6 @@ import TcTypeNats (typeNatAddTyCon, typeNatExpTyCon, typeNatMulTyCon,
 
 import TcTypeNats (typeNatLeqTyCon)
 import TysWiredIn (promotedFalseDataCon, promotedTrueDataCon)
-import Data.IORef
 
 #if MIN_VERSION_ghc(8,10,0)
 import Constraint
@@ -249,14 +270,16 @@ import TcRnTypes  (ShadowInfo (WDeriv))
 import TcType (isEqPrimPred)
 #endif
 
--- internal
-import GHC.TypeLits.Normalise.SOP
-import GHC.TypeLits.Normalise.Unify
-
 #if !MIN_VERSION_ghc(8,10,0)
 isEqPrimPred :: PredType -> Bool
 isEqPrimPred = isEqPred
 #endif
+#endif
+
+import Data.IORef
+-- internal
+import GHC.TypeLits.Normalise.SOP
+import GHC.TypeLits.Normalise.Unify
 
 isEqPredClass :: PredType -> Bool
 isEqPredClass ty = case tyConAppTyCon_maybe ty of
@@ -652,11 +675,19 @@ toNatEquality ct = case classifyPredType $ ctEvPred $ ctEvidence ct of
       = Nothing
 
     isNatKind :: Kind -> Bool
+#if __GLASGOW_HASKELL__ < 811
     isNatKind = (`eqType` typeNatKind)
+#else 
+    isNatKind = (`eqType` naturalTy)
+#endif
 
 unifyItemToPredType :: CoreUnify -> (PredType,Kind)
 unifyItemToPredType ui =
+#if __GLASGOW_HASKELL__ < 811
     (mkPrimEqPred ty1 ty2,typeNatKind)
+#else 
+    (mkPrimEqPred ty1 ty2,naturalTy)
+#endif
   where
     ty1 = case ui of
             SubstItem {..} -> mkTyVarTy siVar

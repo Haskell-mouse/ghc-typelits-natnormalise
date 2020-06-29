@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-|
 Copyright  :  (C) 2015-2016, University of Twente,
                   2017     , QBayLogic B.V.
@@ -94,7 +95,11 @@ import Data.Either (partitionEithers)
 import Data.List   (sort)
 
 -- GHC API
+#if __GLASGOW_HASKELL__ < 810
 import Outputable  (Outputable (..), (<+>), text, hcat, integer, punctuate)
+#else 
+import GHC.Utils.Outputable (Outputable (..), (<+>), text, hcat, integer, punctuate)
+#endif 
 
 data Symbol v c
   = I Integer                 -- ^ Integer constant
